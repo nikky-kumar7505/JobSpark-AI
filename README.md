@@ -1,253 +1,106 @@
 # JobSpark-AI
 
-**AI-native, editorial-grade resume builder — Gemini powered. 100% client-side capable, with an optional Express backend.**
+An editorial-style, AI-powered resume builder that generates tailored, ATS-friendly resumes with Google Gemini — entirely in the browser.
 
-Live studio UI: Fraunces display + Outfit UI, Tailwind CSS v4, buttery Framer Motion, @react-pdf/renderer A4 export.
+Paste a job description, fill in a few details, and Gemini writes your summary, experience, skills, projects, and more. Edit everything in a live preview, then export a clean A4 PDF.
 
-> JobSpark-AI — craft-first AI resume studio. Paste a JD → Generate with Gemini → export a beautiful, ATS-perfect PDF in 45 seconds.
-
----
-
-
-- React 19 + Vite + Tailwind CSS v4
-- Framer Motion, lucide-react, sonner
-- @react-pdf/renderer — true A4 PDF, in-browser
-- Gemini 2.5 Flash via `@google/genai` **direct from the browser**
-- LocalStorage persistence — `jobspark_elite_v5`
-- Zero backend, zero tracking
-
-```
-VITE_GEMINI_API_KEY=AIza...
-npm run dev
-npm run build   # → dist/index.html single-file, 689kb gzip
-```
-
-API key lives in `.env` (Vite). No key input shown in the UI.
-
----
-
-## Option B — Full-Stack Express (secure API key)
-
-Keep the exact same React UI — but route Gemini through a tiny Node/Express proxy so your API key never hits the browser.
-
-```
-jobspark-ai/
-├─ src/                 # React frontend (unchanged)
-├─ server/
-│  ├─ index.js          # Express API
-│  ├─ package.json
-│  └─ .env.example
-├─ README.md
-└─ package.json
-```
-
-### server/index.js
-```js
-// server/index.js
-import express from 'express'
-import cors from 'cors'
-import 'dotenv/config'
-import { GoogleGenAI } from '@google/genai'
-
-const app = express()
-app.use(cors({ origin: true }))
-app.use(express.json({ limit: '2mb' }))
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-
-app.post('/api/generate', async (req, res) => {
-  try {
-    const { prompt } = req.body
-    if(!prompt) return res.status(400).json({ error: 'prompt required' })
-    const r = await ai.interactions.create({
-      model: 'gemini-2.5-flash',
-      input: prompt
-    })
-    // @ts-ignore
-    const text = r.output_text || r?.steps?.find(s=>s.type==='model_output')?.content?.[0]?.text || ''
-    res.json({ text })
-  } catch(e){
-    console.error(e)
-    res.status(500).json({ error: e.message })
-  }
-})
-
-app.get('/health', (_,res)=>res.json({ ok:true, time:new Date().toISOString() }))
-
-const port = process.env.PORT || 8787
-app.listen(port, ()=> console.log(`JobSpark API → http://localhost:${port}`))
-```
-
-### server/package.json
-```json
-{
-  "name": "jobspark-ai-server",
-  "type": "module",
-  "version": "3.2.0",
-  "scripts": {
-    "dev": "node --watch index.js",
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "@google/genai": "^1.7.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2"
-  }
-}
-```
-
-### server/.env.example
-```
-GEMINI_API_KEY=AIza...
-PORT=8787
-# FRONTEND_URL=http://localhost:5173
-```
-
-### Frontend swap (1 line)
-In `src/App.tsx`, replace the `callGemini` function:
-
-```ts
-// Option B
-const callGemini = async (prompt: string) => {
-  const res = await fetch(import.meta.env.VITE_API_URL || 'http://localhost:8787/api/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt })
-  })
-  if(!res.ok) throw new Error('AI proxy failed')
-  const { text } = await res.json()
-  return text
-}
-```
-
-Remove `VITE_GEMINI_API_KEY` from the frontend `.env`. Now the key lives only in `server/.env`.
-
-Run both:
-```
-# terminal 1
-cd server && npm i && npm run dev
-# terminal 2
-VITE_API_URL=http://localhost:8787 npm run dev
-```
-
-Deploy:
-- Frontend → Vercel / Netlify / Cloudflare Pages
-- API → Render / Railway / Fly.io / Cloud Run
-Set `VITE_API_URL=https://api.jobspark.ai` in frontend env.
-
----
+![JobSpark-AI](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-orange) ![React](https://img.shields.io/badge/React-19-61DAFB) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6) ![Vite](https://img.shields.io/badge/Vite-7-646CFF)
 
 ## Features
 
-**Generate with Gemini — Option A card**
-- Fraunces display headline: *Generate your resume with Gemini*
-- Fields: Your name *, Email, Target role *, Target company / industry, Experience level, Location, Core skills, Target job description (JD)
-- One button: **Generate with Gemini**
-- No model picker, no API key field in UI
+- **AI resume generation** — Gemini 2.5 Flash builds a full resume from your name, target role, experience level, skills, and optional job description
+- **Live preview** — See changes instantly in a polished, two-column resume layout
+- **Manual editor** — Fine-tune personal info, summary, experience, education, and skills after generation
+- **ATS score** — Heuristic score based on summary length, experience depth, skills, and impact verbs
+- **PDF export** — Download an ATS-clean, one-page-safe A4 PDF via `@react-pdf/renderer`
+- **Local-first** — Resume data persists in `localStorage`; no backend or account required
+- **Mobile-friendly** — Responsive layout with a slide-up preview drawer on smaller screens
 
-**Editor that’s actually visible**
-- Strengths: Clear career positioning • ATS-friendly structure • Impact-first bullet strategy — 3 editorial cards, always visible
-- Skills: Core skills • Tools • Soft — chips + “Add your most relevant skills” / “Type skill + Enter” empty state
-- Education: “Add school or program” button, “Add degree, course, or training” empty state, Degree • School • Year • GPA inputs, all responsive
-- Experience: verb-first XYZ bullets, per-bullet AI refine
-- Projects, Certifications, Languages — all editable
+## Tech Stack
 
-**Live Preview**
-- Right-rail editorial paper on desktop, slide-up drawer on mobile
-- Real-time ATS score, bullet count, keyword fit
-- @react-pdf/renderer A4 export, 1-page safe
-
-**Tech**
-- React 19, Vite 7, Tailwind CSS 4.1
-- Framer Motion animations
-- TypeScript, fully typed ResumeData
-- sonner toasts
-- localStorage autosave
-
----
+| Layer | Tools |
+|-------|-------|
+| UI | React 19, TypeScript, Tailwind CSS 4, Framer Motion, Lucide icons |
+| AI | Google Gemini API (`@google/genai`) |
+| PDF | `@react-pdf/renderer` |
+| Build | Vite 7, `vite-plugin-singlefile` |
+| UX | Sonner toasts |
 
 ## Getting Started
 
-### Option A – Frontend only
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 18+
+- A [Google AI Studio](https://aistudio.google.com/) API key (for AI generation)
+
+### Installation
+
 ```bash
-git clone <repo>
-cd jobspark-ai
+git clone https://github.com/your-username/Jobspark-ai-resume-builder.git
+cd Jobspark-ai-resume-builder
 npm install
-echo "VITE_GEMINI_API_KEY=AIza..." > .env
-npm run dev
-# http://localhost:5173
 ```
 
-### Option B – Full-stack
+### Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Restart the dev server after adding or changing the key.
+
+> **Note:** The API key is exposed to the browser via Vite's `import.meta.env`. For production, consider proxying requests through a backend to keep the key private.
+
+### Development
+
 ```bash
-# API
-cd server
-cp .env.example .env
-# edit GEMINI_API_KEY
-npm install
-npm run dev
-# → http://localhost:8787
-
-# Web
-cd ..
-echo "VITE_API_URL=http://localhost:8787" > .env
-npm install
 npm run dev
 ```
 
-Build production:
+Open the URL shown in the terminal (typically `http://localhost:5173`).
+
+### Production Build
+
 ```bash
-npm run build   # outputs dist/index.html ~2.24MB (690kb gzip)
+npm run build
+npm run preview
 ```
 
----
+The build uses `vite-plugin-singlefile` to bundle the app into a single HTML file for easy deployment.
 
-## .env
+## Usage
 
-Frontend (Option A):
-```
-VITE_GEMINI_API_KEY=AIzaSy...
-```
+1. **Generate** — Enter your name and target role in the AI Generator panel. Optionally paste a job description for keyword matching, then click **Generate with Gemini**.
+2. **Edit** — Update personal details, summary, experience bullets, education, and skills in the left column.
+3. **Preview** — Watch the live resume preview update on the right (desktop) or tap **Preview** on mobile.
+4. **Export** — Click **Export PDF** in the header to download your resume.
 
-Frontend (Option B):
-```
-VITE_API_URL=https://api.your-domain.com
-# no GEMINI key in frontend
-```
-
-Server (Option B):
-```
-GEMINI_API_KEY=AIzaSy...
-PORT=8787
-```
-
----
+Use **Load demo** to explore a sample resume, or **Reset** to start from a blank slate.
 
 ## Project Structure
 
 ```
-src/
-  App.tsx              # JobSpark-AI – full UI, PDF, Gemini
-  main.tsx
-  index.css            # @import "tailwindcss"
-  vite-env.d.ts
-public/
-index.html             # JobSpark-AI — Next-gen AI Resume Builder
-server/                # Option B
-  index.js
-  package.json
-  .env.example
-README.md
+Jobspark-ai-resume-builder/
+├── index.html              # App entry HTML
+├── vite.config.ts          # Vite + Tailwind + single-file plugin
+├── src/
+│   ├── main.tsx            # React root
+│   ├── App.tsx             # Main app: AI generation, editor, preview, PDF
+│   ├── index.css           # Tailwind imports
+│   ├── vite-env.d.ts       # Vite env types (VITE_GEMINI_API_KEY)
+│   └── utils/
+│       └── cn.ts           # Class name utility
+└── package.json
 ```
 
----
+## Privacy
+
+- All resume data is stored locally in the browser (`localStorage` key: `jobspark_elite_v5`)
+- No server-side storage or analytics
+- AI requests go directly from your browser to Google's Gemini API using your API key
 
 ## License
 
-MIT — build cool things, ship fast.
-
----
-
-JobSpark-AI v5 • Editorial UI • Tailwind CSS • Gemini 2.5 Flash • @react-pdf/renderer
-Made for makers who ship.
+This project is private. Add a license file if you plan to open-source it.
