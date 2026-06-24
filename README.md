@@ -4,7 +4,7 @@ An editorial-style, AI-powered resume builder that generates tailored, ATS-frien
 
 Paste a job description, fill in a few details, and Gemini writes your summary, experience, skills, projects, and more. Edit everything in a live preview, then export a clean A4 PDF.
 
-![JobSpark-AI](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-orange) ![React](https://img.shields.io/badge/React-19-61DAFB) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6) ![Vite](https://img.shields.io/badge/Vite-7-646CFF)
+![JobSpark-AI](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-orange) ![React](https://img.shields.io/badge/React-19-61DAFB) ![JavaScript](https://img.shields.io/badge/JavaScript-ES2020-F7DF1E) ![Vite](https://img.shields.io/badge/Vite-7-646CFF)
 
 ## Features
 
@@ -20,7 +20,7 @@ Paste a job description, fill in a few details, and Gemini writes your summary, 
 
 | Layer | Tools |
 |-------|-------|
-| UI | React 19, TypeScript, Tailwind CSS 4, Framer Motion, Lucide icons |
+| UI | React 19, JavaScript (JSX), Tailwind CSS 4, Framer Motion, Lucide icons |
 | AI | Google Gemini API (`@google/genai`) |
 | PDF | `@react-pdf/renderer` |
 | Build | Vite 7, `vite-plugin-singlefile` |
@@ -84,14 +84,14 @@ Use **Load demo** to explore a sample resume, or **Reset** to start from a blank
 ```
 Jobspark-ai-resume-builder/
 ├── index.html              # App entry HTML
-├── vite.config.ts          # Vite + Tailwind + single-file plugin
+├── vite.config.js          # Vite + Tailwind + single-file plugin
+├── jsconfig.json           # Path aliases for editor support
 ├── src/
-│   ├── main.tsx            # React root
-│   ├── App.tsx             # Main app: AI generation, editor, preview, PDF
+│   ├── main.jsx            # React root
+│   ├── App.jsx             # Main app: AI generation, editor, preview, PDF
 │   ├── index.css           # Tailwind imports
-│   ├── vite-env.d.ts       # Vite env types (VITE_GEMINI_API_KEY)
 │   └── utils/
-│       └── cn.ts           # Class name utility
+│       └── cn.js           # Class name utility
 └── package.json
 ```
 

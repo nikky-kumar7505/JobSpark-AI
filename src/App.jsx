@@ -8,30 +8,15 @@ import {
 } from 'lucide-react'
 import { Document, Page, Text, View, StyleSheet, PDFDownloadLink } from '@react-pdf/renderer'
 
-/* ── Types ── */
-type Exp = { id:string; role:string; company:string; location:string; start:string; end:string; current:boolean; bullets:string[] }
-type Edu = { id:string; degree:string; school:string; year:string; gpa?:string }
-type Proj = { id:string; name:string; link:string; tech:string; desc:string }
-type Resume = {
-  personal: { fullName:string; title:string; email:string; phone:string; location:string; website:string; linkedin:string; github:string }
-  summary: string
-  experience: Exp[]
-  education: Edu[]
-  skills: { technical:string[]; tools:string[]; soft:string[] }
-  projects: Proj[]
-  certifications: string[]
-  languages: string[]
-}
-
 /* ── Seed ── */
-const blankResume: Resume = {
+const blankResume = {
   personal: { fullName:'', title:'', email:'', phone:'', location:'', website:'', linkedin:'', github:'' },
   summary:'', experience:[], education:[], projects:[],
   skills:{ technical:[], tools:[], soft:[] },
   certifications:[], languages:[]
 }
 
-const demo: Resume = {
+const demo = {
   personal: {
     fullName: 'Aria Chen',
     title: 'Senior Product Designer • AI-Native Systems',
@@ -90,7 +75,7 @@ const P = StyleSheet.create({
   right:{ width:'37%' },
   pill:{ fontSize:8.4, borderWidth:0.55, borderColor:'#d8cdc0', borderRadius:4, paddingHorizontal:5, paddingVertical:2.5, marginRight:4, marginBottom:4, color:'#444' }
 })
-function PdfDoc({ data }:{ data:Resume }){
+function PdfDoc({ data }){
   return (
     <Document title={`${data.personal.fullName} Resume`}>
       <Page size="A4" style={P.page}>
@@ -160,7 +145,7 @@ function PdfDoc({ data }:{ data:Resume }){
 
 /* ── App ── */
 export default function App(){
-  const [resume, setResume] = useState<Resume>(()=> {
+  const [resume, setResume] = useState(()=> {
     const s = localStorage.getItem('jobspark_elite_v5')
     return s ? JSON.parse(s) : demo
   })
@@ -172,7 +157,7 @@ export default function App(){
   const [gen, setGen] = useState(false)
   const [mobilePrev, setMobilePrev] = useState(false)
 
-  const GEMINI_KEY = (import.meta as any)?.env?.VITE_GEMINI_API_KEY || ''
+  const GEMINI_KEY = import.meta.env?.VITE_GEMINI_API_KEY || ''
 
   useEffect(()=> localStorage.setItem('jobspark_elite_v5', JSON.stringify(resume)), [resume])
 
@@ -187,13 +172,12 @@ export default function App(){
     return Math.min(97,s)
   },[resume])
 
-  const callGemini = async (prompt:string)=>{
+  const callGemini = async (prompt)=>{
     if(!GEMINI_KEY){ toast.error('Add VITE_GEMINI_API_KEY in .env'); throw new Error('no-key') }
     const { GoogleGenAI } = await import('@google/genai')
     const ai = new GoogleGenAI({ apiKey: GEMINI_KEY })
     const r = await ai.interactions.create({ model:'gemini-2.5-flash', input: prompt })
-    // @ts-ignore
-    return r.output_text || r?.steps?.find((s:any)=>s.type==='model_output')?.content?.[0]?.text || ''
+    return r.output_text || r?.steps?.find((s)=>s.type==='model_output')?.content?.[0]?.text || ''
   }
 
   const generate = async ()=>{
@@ -238,14 +222,14 @@ Rules: XYZ bullets, verb-first, quantify, mirror JD keywords if provided. No pla
       const txt = await callGemini(prompt)
       const json = txt.match(/\{[\s\S]*\}/)?.[0]
       if(!json) throw new Error('Bad AI response')
-      const r:Resume = JSON.parse(json)
+      const r = JSON.parse(json)
       if(spark.email) r.personal.email = spark.email
       if(spark.name) r.personal.fullName = spark.name
       if(spark.location) r.personal.location = spark.location
       setResume(r)
       toast.success('Resume generated ✨', { description:'AI wrote your full tailored resume.'})
       window.scrollTo({ top: 580, behavior:'smooth' })
-    }catch(e:any){
+    }catch(e){
       if(e.message!=='no-key') toast.error('Generation failed', { description: e?.message })
     }finally{ setGen(false) }
   }
@@ -253,11 +237,11 @@ Rules: XYZ bullets, verb-first, quantify, mirror JD keywords if provided. No pla
   const pdfDoc = useMemo(()=> <PdfDoc data={resume} />, [resume])
 
   // helper mutators
-  const addSkill = (group:'technical'|'tools'|'soft', v:string)=>{
+  const addSkill = (group, v)=>{
     if(!v.trim()) return
     setResume(r=>({...r, skills: {...r.skills, [group]: [...r.skills[group], v.trim()] }}))
   }
-  const removeSkill = (group:'technical'|'tools'|'soft', i:number)=>{
+  const removeSkill = (group, i)=>{
     setResume(r=>({...r, skills:{...r.skills, [group]: r.skills[group].filter((_,ix)=>ix!==i)}}))
   }
 
@@ -303,7 +287,7 @@ Rules: XYZ bullets, verb-first, quantify, mirror JD keywords if provided. No pla
             <button onClick={()=>setMobilePrev(true)} className="lg:hidden inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white border border-[#dec9ad] text-[13px] font-[620]"><Eye className="w-4 h-4"/> Preview</button>
             <PDFDownloadLink document={pdfDoc} fileName={`${(resume.personal.fullName||'JobSpark_Resume').replace(/\s+/g,'_')}.pdf`}
               className="inline-flex items-center gap-2 rounded-full bg-zinc-900 text-[#fff4e4] px-4 sm:px-5 py-[10px] text-[13.6px] sm:text-[14px] font-[700] hover:bg-black shadow-[0_8px_24px_rgba(0,0,0,.12)]">
-              {({loading}:any)=> loading ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>PDF…</> : <><Download className="w-[16px] h-[16px]"/><span className="hidden sm:inline">Export PDF</span><span className="sm:hidden">PDF</span></>}
+              {({loading})=> loading ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>PDF…</> : <><Download className="w-[16px] h-[16px]"/><span className="hidden sm:inline">Export PDF</span><span className="sm:hidden">PDF</span></>}
             </PDFDownloadLink>
           </div>
         </div>
@@ -453,7 +437,7 @@ Rules: XYZ bullets, verb-first, quantify, mirror JD keywords if provided. No pla
                 <span className="text-[11.5px] text-zinc-500">Core skills • Tools • Soft</span>
               </div>
 
-              {(['technical','tools','soft'] as const).map(group=>(
+              {['technical','tools','soft'].map(group=>(
                 <div key={group} className="mb-4 last:mb-0">
                   <div className="text-[12px] font-[700] tracking-[.08em] text-zinc-600 uppercase mb-2">
                     {group === 'technical' ? 'Core skills' : group}
@@ -584,18 +568,18 @@ Rules: XYZ bullets, verb-first, quantify, mirror JD keywords if provided. No pla
               </div>
               <div className="grid sm:grid-cols-2 gap-3.5">
                 {[
-                  ['Full name', resume.personal.fullName, (v:string)=> setResume(r=>({...r, personal:{...r.personal, fullName:v}}))],
-                  ['Title / headline', resume.personal.title, (v:string)=> setResume(r=>({...r, personal:{...r.personal, title:v}}))],
-                  ['Email', resume.personal.email, (v:string)=> setResume(r=>({...r, personal:{...r.personal, email:v}}))],
-                  ['Phone', resume.personal.phone, (v:string)=> setResume(r=>({...r, personal:{...r.personal, phone:v}}))],
-                  ['Location', resume.personal.location, (v:string)=> setResume(r=>({...r, personal:{...r.personal, location:v}}))],
-                  ['Website', resume.personal.website, (v:string)=> setResume(r=>({...r, personal:{...r.personal, website:v}}))],
-                  ['LinkedIn', resume.personal.linkedin, (v:string)=> setResume(r=>({...r, personal:{...r.personal, linkedin:v}}))],
-                  ['GitHub', resume.personal.github, (v:string)=> setResume(r=>({...r, personal:{...r.personal, github:v}}))],
-                ].map(([label, val, fn]:any)=>(
-                  <div key={label as string}>
-                    <div className="label">{label as string}</div>
-                    <input className="input" value={val as string} onChange={e=>fn(e.target.value)} />
+                  ['Full name', resume.personal.fullName, (v)=> setResume(r=>({...r, personal:{...r.personal, fullName:v}}))],
+                  ['Title / headline', resume.personal.title, (v)=> setResume(r=>({...r, personal:{...r.personal, title:v}}))],
+                  ['Email', resume.personal.email, (v)=> setResume(r=>({...r, personal:{...r.personal, email:v}}))],
+                  ['Phone', resume.personal.phone, (v)=> setResume(r=>({...r, personal:{...r.personal, phone:v}}))],
+                  ['Location', resume.personal.location, (v)=> setResume(r=>({...r, personal:{...r.personal, location:v}}))],
+                  ['Website', resume.personal.website, (v)=> setResume(r=>({...r, personal:{...r.personal, website:v}}))],
+                  ['LinkedIn', resume.personal.linkedin, (v)=> setResume(r=>({...r, personal:{...r.personal, linkedin:v}}))],
+                  ['GitHub', resume.personal.github, (v)=> setResume(r=>({...r, personal:{...r.personal, github:v}}))],
+                ].map(([label, val, fn])=>(
+                  <div key={label}>
+                    <div className="label">{label}</div>
+                    <input className="input" value={val} onChange={e=>fn(e.target.value)} />
                   </div>
                 ))}
               </div>
@@ -718,9 +702,9 @@ Rules: XYZ bullets, verb-first, quantify, mirror JD keywords if provided. No pla
                   ['Skills', resume.skills.technical.length],
                   ['ATS', ats]
                 ].map(([l,v])=>(
-                  <div key={l as string} className="elev rounded-[18px] px-4 py-3">
+                  <div key={l} className="elev rounded-[18px] px-4 py-3">
                     <div className="text-[11px] text-zinc-500 uppercase tracking-wider font-[700]">{l}</div>
-                    <div className="text-[21px] display font-[700]">{v as any}</div>
+                    <div className="text-[21px] display font-[700]">{v}</div>
                   </div>
                 ))}
               </div>
@@ -759,7 +743,7 @@ Rules: XYZ bullets, verb-first, quantify, mirror JD keywords if provided. No pla
                   </div>
                 ))}
                 <PDFDownloadLink document={pdfDoc} fileName={`${(resume.personal.fullName||'Resume').replace(/\s+/g,'_')}.pdf`}>
-                  {({loading}:any)=>(
+                  {({loading})=>(
                     <div className="w-full text-center py-3 rounded-full bg-zinc-900 text-amber-50 font-[650]">
                       {loading ? 'Preparing…' : 'Download PDF'}
                     </div>
@@ -788,7 +772,7 @@ Rules: XYZ bullets, verb-first, quantify, mirror JD keywords if provided. No pla
 }
 
 /* ── small ── */
-function Preview({title, children, className=''}:{title:string; children:React.ReactNode; className?:string}){
+function Preview({title, children, className=''}){
   return (
     <div className={`mb-6 ${className}`}>
       <div className="text-[10.8px] tracking-[.18em] text-zinc-500 uppercase font-[750]" style={{fontFamily:'"Outfit",system-ui,sans-serif'}}>{title}</div>
